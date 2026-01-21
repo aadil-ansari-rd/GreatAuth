@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import bcrypt, { hash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
 import transporter from '../config/nodemailer.js';
@@ -37,13 +37,48 @@ export const register = async (req, res) => {
 
 
         //--------------------------------------------------
+        // Sending welcome email using Gamil SMTP
+        // const mailOptions = {
+        //     from: `"GreatAuth" <${process.env.GMAIL_USER}>`,
+        //     to: email,
+        //     subject: "Welcome !",
+        //     text: `Welcome, your account has been created with email: ${email}`,
+        //     html: `<h2>Welcome!</h2><p>Your account has been created with email: <b>${email}</b></p>` // optional HTML
+        // };
+        // try {
+        //     await transporter.sendMail(mailOptions);
+        // } catch (emailErr) {
+        //     console.error("EMAIL ERROR:", emailErr);
+        //     return res.json({ success: false, message: "Email sending failed" });
+        // }
+        //--------------------------------------------------
+
+        //--------------------------------------------------
         // Sending welcome email using Brevo SMTP
         const mailOptions = {
             from: `"GreatAuth" <${process.env.SENDER_EMAIL}>`, // Brevo verified sender
             to: email, // user's email
             subject: "Welcome ! 🎉",
             text: `Welcome, your account has been created with email: ${email}`,
-            html: `<h2>Welcome!</h2><p>Your account has been created with email: <b>${email}</b></p>` // optional HTML for better formatting
+            html: `
+                    <div style="max-width:500px;margin:30px auto;padding:24px;
+                    font-family:Arial;background:#ffffff;border-radius:12px;
+                    box-shadow:0 6px 20px rgba(0,0,0,0.08);">
+
+                    <h2 style="margin:0 0 12px;color:#2563eb;">🎉 Welcome to GreatAuth</h2>
+                    <p style="color:#374151;font-size:15px;">
+                        Your account has been successfully created with this email:
+                    </p>
+
+                    <p style="font-size:16px;font-weight:600;color:#111827;">
+                        ${email}
+                    </p>
+
+                    <p style="font-size:13px;color:#6b7280;">
+                        You can now start using your account securely.
+                    </p>
+                    </div>
+                `
         };
 
         try {
@@ -134,7 +169,29 @@ export const sendVerifyOtp = async (req, res) => {
             from: `"GreatAuth" <${process.env.SENDER_EMAIL}>`,
             to: user.email,
             subject: "Account Verification OTP",
-            text: `Your OTP is ${otp}, Verify your account using this OTP.`,
+            text: `Your OTP is ${otp}, Verify your account using this OTP. This is valid for 24 hours.`,
+            html: `
+                    <div style="max-width:500px;margin:30px auto;padding:24px;
+                    font-family:Arial;background:#ffffff;border-radius:12px;
+                    box-shadow:0 6px 20px rgba(0,0,0,0.08);">
+
+                    <h2 style="margin:0 0 12px;color:#2563eb;">🔐 Verify Your Account</h2>
+                    <p style="color:#374151;font-size:15px;">
+                        Use the OTP below to verify your GreatAuth account (valid for 24 hours).
+                    </p>
+
+                    <p style="text-align:center;
+                    font-size:30px;font-weight:700;
+                    letter-spacing:6px;color:#111827;">
+                        ${otp}
+                    </p>
+
+                    <p style="font-size:13px;color:#6b7280;">
+                        Do not share this OTP with anyone.
+                    </p>
+                    </div>
+                `
+
         };
 
         try {
@@ -150,7 +207,7 @@ export const sendVerifyOtp = async (req, res) => {
     }
 }
 
-//---------------- Verify Email OTP ----------------//
+//---------------- Verify Email using OTP ----------------//
 export const verifyEmail = async (req, res) => {
     const { userId, otp } = req.body;
 
@@ -166,15 +223,17 @@ export const verifyEmail = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: "User not found." });
         }
-
-        // Validate OTP
-        if (user.verifyOtp === "" || user.verifyOtp !== otp) {
-            return res.json({ success: false, message: "Invalid OTP" });
-        }
+        console.log("verify otp : ", user.verifyOtp);
+        console.log("otp : ", otp);
 
         // Check if OTP is expired
         if (user.verifyOtpExpiredAt < Date.now()) {
             return res.json({ success: false, message: "OTP Expired" });
+        }
+
+        // Validate OTP
+        if (user.verifyOtp === "" || user.verifyOtp !== otp) {
+            return res.json({ success: false, message: "Invalid OTP" });
         }
 
         // Mark account as verified and reset OTP
@@ -190,187 +249,108 @@ export const verifyEmail = async (req, res) => {
 }
 
 
+//Check if user is Authenticated
+export const isAuthenticated = async (req, res) => {
+    try {
+        return res.json({ success: true });
+    } catch (err) {
+        return res.json({ success: false, message: err.message });
+
+    }
+}
 
 
+// Send password Reset OTP
+export const sendResetOTP = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.json({ success: false, message: "Email is required" });
 
-// import bcrypt from 'bcryptjs';
-// import jwt from 'jsonwebtoken';
-// import userModel from '../models/userModel.js';
-// import transporter from '../config/nodemailer.js';
+    }
+    try {
+        const user = await userModel.findOne({ email: email })
+        if (!user) {
+            return res.json({ success: false, message: "User not found." });
+        }
+        // Generate 6-digit OTP
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        user.resetOtp = otp;
+        user.restOtpExpiredAt = Date.now() + 15 * 60 * 1000; // 15 minutes99 expiry
+        await user.save();
 
-// export const register = async (req, res) => {
-//     const { name, email, password } = req.body;
+        // Prepare email with OTP
+        const mailOptions = {
+            from: `"GreatAuth" <${process.env.SENDER_EMAIL}>`,
+            to: user.email,
+            subject: "Password rest OTP",
+            text: `Your OTP for reseting your password is ${otp}. Use this OTP to proceed with resetting your password. This is valid for 15 minutes.`,
+            html: `
+                    <div style="max-width:500px;margin:30px auto;padding:24px;
+                    font-family:Arial;background:#ffffff;border-radius:12px;
+                    box-shadow:0 6px 20px rgba(0,0,0,0.08);">
 
-//     if (!name || !email || !password) {
-//         return res.json({ success: false, message: "Missing details" })
-//     }
+                    <h2 style="margin:0 0 12px;color:#dc2626;">🔑 Reset Password</h2>
+                    <p style="color:#374151;font-size:15px;">
+                        Use the OTP below to reset your GreatAuth password (valid for 15 minutes).
+                    </p>
 
-//     try {
-//         const existingUser = await userModel.findOne({ email });
-//         if (existingUser) {
-//             return res.json({ success: false, message: "User already exists" });
-//         }
+                    <p style="text-align:center;
+                    font-size:30px;font-weight:700;
+                    letter-spacing:6px;color:#111827;">
+                        ${otp}
+                    </p>
 
-//         const hashedpassword = await bcrypt.hash(password, 10);
+                    <p style="font-size:13px;color:#6b7280;">
+                        If you didn’t request this, you can safely ignore this email.
+                    </p>
+                    </div>
+                `
 
-//         const user = new userModel({ name, email, password: hashedpassword });
-//         await user.save();
+        };
 
-//         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-//         res.cookie('token', token, {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === 'production',
-//             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-//             maxAge: 7 * 24 * 60 * 60 * 1000
-//         })
+        try {
+            await transporter.sendMail(mailOptions); // send OTP email
+        } catch (emailErr) {
+            console.error("EMAIL ERROR:", emailErr);
+            return res.json({ success: false, message: "Email sending failed", error: emailErr.message });
+        }
 
-//         //--------------------------------------------------
-//         // Sending welcome email using Gamil SMTP
-//         // const mailOptions = {
-//         //     from: `"GreatAuth" <${process.env.GMAIL_USER}>`,
-//         //     to: email,
-//         //     subject: "Welcome !",
-//         //     text: `Welcome, your account has been created with email: ${email}`,
-//         //     html: `<h2>Welcome!</h2><p>Your account has been created with email: <b>${email}</b></p>` // optional HTML
-//         // };
-//         // try {
-//         //     await transporter.sendMail(mailOptions);
-//         // } catch (emailErr) {
-//         //     console.error("EMAIL ERROR:", emailErr);
-//         //     return res.json({ success: false, message: "Email sending failed" });
-//         // }
-//         //--------------------------------------------------
+        return res.json({ success: true, message: "Otp sent to your email" })
 
-
-
-//         // Sending welcome email using Brevo SMTP
-
-//         const mailOptions = {
-//             from: `"GreatAuth" <${process.env.SENDER_EMAIL}>`, // Brevo verified sender
-//             to: email,
-//             subject: "Welcome ! 🎉",
-//             text: `Welcome, your account has been created with email: ${email}`,
-//             html: `<h2>Welcome!</h2><p>Your account has been created with email: <b>${email}</b></p>` // optional HTML
-//         };
-
-//         try {
-//             await transporter.sendMail(mailOptions);
-//         } catch (emailErr) {
-//             console.error("EMAIL ERROR:", emailErr);
-//             return res.json({ success: false, message: "Email sending failed", error: emailErr.message });
-//         }
-
-//         return res.json({ success: true, message: "Account registered successful" });
-//     } catch (err) {
-//         res.json({ success: false, message: err.message })
-//     }
-// }
-
-// export const login = async (req, res) => {
-//     const { email, password } = req.body;
-//     if (!email || !password) {
-//         return res.json({ success: false, message: "Email and password are required." })
-//     }
-//     try {
-//         const user = await userModel.findOne({ email });
-//         if (!user) {
-//             return res.json({ success: false, message: "Invalid email" });
-//         }
-
-//         const isMatch = await bcrypt.compare(password, user.password);
-
-//         if (!isMatch) {
-//             return res.json({ success: false, message: "Invalid password" })
-//         }
-
-//         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-//         res.cookie('token', token, {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === 'production',
-//             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-//             maxAge: 7 * 24 * 60 * 60 * 1000
-//         });
-
-//         return res.json({ success: true, message: "Login successful" })
+    } catch (err) {
+        return res.json({ success: false, message: err.message });
+    }
+}
 
 
-//     } catch (err) {
-//         return res.json({ success: false, message: err.message });
-//     }
+//Reset user password 
+export const resetPassword = async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+        return res.json({ success: false, message: "Email, OTP , and new password are required." });
 
-// }
-// export const logout = async (req, res) => {
-//     try {
-//         res.clearCookie('token', {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === 'production',
-//             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-//         })
-//         return res.json({ success: true, message: "Logged out" })
-//     } catch (err) {
-//         return res.json({ success: false, message: err.message });
-//     }
-// }
+    }
 
-// //Send verification OTP to the User's Email
-// export const sendVerifyOtp = async (req, res) => {
-//     try {
-//         const { userId } = req.body;
-//         const user = await userModel.findById(userId);
-//         if (user.isAccountVerified) {
-//             return res.json({ success: false, message: "Account already verified." });
+    try {
+        const user = await userModel.findOne({ email: email });
+        if (!user) {
+            return res.json({ success: false, message: "User not found." });
+        }
+        if (user.resetOtp === "" || user.resetOtp !== otp) {
+            return res.json({ success: false, message: "Invalid OTP." });
+        }
+        if (user.restOtpExpiredAt < Date.now()) {
+            return res.json({ success: false, message: "OTP Expired." });
+        }
 
-//         }
-//         const otp = String(Math.floor(100000 + Math.random() * 900000));
-//         user.verifyOtp = otp;
-//         user.verifyOtpExpiredAt = Date.now() + 24 * 60 * 60 * 1000;
-//         await user.save();
+        const hashedpassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedpassword;
+        user.resetOtp = "";
+        user.restOtpExpiredAt = 0;
+        await user.save();
 
-
-//         const mailOptions = {
-//             from: `"GreatAuth" <${process.env.SENDER_EMAIL}>`, // Brevo verified sender
-//             to: user.email,
-//             subject: "Account Verification OTP",
-//             text: `Your OTP is ${otp}, Verify your account using this OTP.`,
-//         };
-
-//         try {
-//             await transporter.sendMail(mailOptions);
-//         } catch (emailErr) {
-//             console.error("EMAIL ERROR:", emailErr);
-//             return res.json({ success: false, message: "Email sending failed", error: emailErr.message });
-//         }
-
-//         res.json({ success: true, message: "Verifiy OTP sent on email." })
-//     } catch (err) {
-//         return res.json({ success: false, message: err.message });
-//     }
-// }
-
-// export const verifyEmail = async (req, res) => {
-//     const { userId, otp } = req.body;
-//     if (!user || !otp) {
-//         return res.json({ success: false, message: "Missing details" });
-
-//     }
-//     try {
-//         const user = await userModel.findById(userId);
-//         if (!user) {
-//             return res.json({ success: false, message: "User not found." });
-//         }
-//         if (user.verifyOtp === "" || user.verifyOtp !== otp) {
-//             return res.json({ success: false, message: "Invalid Otp" });
-//         }
-//         if (user.verifyOtpExpiredAt < Date.now()) {
-//             return res.json({ success: false, message: "OTP Expired" });
-//         }
-
-//         user.isAccountVerified = true;
-//         user.verifyOtp = "";
-//         user.verifyOtpExpiredAt = 0;
-//         await user.save();
-//         return res.json({ success: true, message: "Email verified successfully." })
-//     } catch (err) {
-//         return res.json({ success: false, message: err.message });
-//     }
-// }
+        return res.json({ success: true, message: "Password has been reset successfully." });
+    } catch (err) {
+        res.json({ success: false, message: err.message });
+    }
+}
