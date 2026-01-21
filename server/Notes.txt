@@ -1,0 +1,2 @@
+Server run with Node : npm start
+Server run with Nodemon : npm run server
