@@ -3,6 +3,8 @@ import cors from "cors";                  // CORS middleware for cross-origin re
 import cookieParser from "cookie-parser"; // Parses cookies from incoming requests
 import connectDB from "./config/mongodb.js";
 import authRouter from "./routes/authRoutes.js"
+import userRouter from "./routes/userRoutes.js";
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -21,6 +23,7 @@ app.get("/", (req, res) =>                // Basic route to verify API is runnin
     res.send("API working")
 );
 app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
 
 app.listen(port, () => {                  // Start server on defined port
     console.log(`Server is running on port : ${port}`);
