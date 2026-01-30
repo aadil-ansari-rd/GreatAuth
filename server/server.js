@@ -13,9 +13,14 @@ const app = express();                    // Create Express application instance
 const port = process.env.PORT || 4000;    // Use PORT from env or fallback to 4000
 connectDB();
 
+const allowedOrigins = [                     // Define allowed origins for CORS
+    'http://localhost:5173',                // Client origin
+    'http://localhost:7000'                 // Testing origin
+];
+
 app.use(express.json());                  // Parse incoming JSON request body
 app.use(cookieParser());                  // Enable cookie parsing
-app.use(cors({ credentials: true }));     // Allow CORS with credentials (cookies)
+app.use(cors({ origin: allowedOrigins, credentials: true }));     // Allow CORS with credentials (cookies)
 
 
 //API Endpoints

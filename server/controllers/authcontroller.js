@@ -97,6 +97,7 @@ export const register = async (req, res) => {
 
 //---------------- Login User ----------------//
 export const login = async (req, res) => {
+    console.log("Login controller called");
     const { email, password } = req.body;
 
     // Check if email and password are provided
@@ -122,9 +123,10 @@ export const login = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
+        console.log("Login successful, token set in cookie.");
 
         return res.json({ success: true, message: "Login successful" })
     } catch (err) {

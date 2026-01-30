@@ -1,26 +1,58 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { assets } from '../assets/assets'
 import { useNavigate } from 'react-router-dom';
-
+import { AppContent } from '../context/AppContext.jsx';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 const Login = () => {
 
     const navigate = useNavigate();
+
+    const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContent);
 
     const [state, setState] = useState('Sign Up');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleSubmit = (e) => {
-        e.preventDefault()   // ✅ page reload stop
-        console.log(state, 'form submitted')
+    const onSubmitHandler = async (e) => {
+        try {
+            e.preventDefault();
+            if (state === 'Sign Up') {
+                const { data } = await axios.post(backendUrl + '/api/auth/register', {
+                    name,
+                    email,
+                    password
+                },{ withCredentials: true });
+                if (data.success) {
+                    setIsLoggedin(true);
+                    getUserData();
+                    navigate('/');
+                } else {
+                    toast.error(data.message);
+                }
+            } else {
+                const { data } = await axios.post(backendUrl + '/api/auth/login', {
+                    email,
+                    password
+                }, { withCredentials: true });
+                if (data.success) {
+                    setIsLoggedin(true);
+                    getUserData();
+                    navigate('/');
+                } else {
+                    toast.error(data.message);
+                }
+            }
+        } catch (error) {
+            toast.error(error.message);
+        }
     }
-
     return (
         <div className='flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-br from-blue-200 to-purple-400'>
 
             <img
-            onClick={()=>navigate('/')}
+                onClick={() => navigate('/')}
                 src={assets.logo}
                 alt="logo"
                 className='absolute left-5 sm:left-20 top-5 w-28 sm:w-32 cursor-pointer'
@@ -37,7 +69,7 @@ const Login = () => {
                         : 'Login to your account!'}
                 </p>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={onSubmitHandler}>
                     {state === 'Sign Up' && (
                         <div className='mb-4 flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#333A5C]'>
                             <img src={assets.person_icon} alt="user icon" />
@@ -83,7 +115,7 @@ const Login = () => {
                     {state === 'Login' && (
 
                         <button
-                            onClick={()=>{navigate('/reset-password')}}
+                            onClick={() => { navigate('/reset-password') }}
                             type="button"
                             className='mb-4 text-indigo-500 text-left w-full'
                         >
