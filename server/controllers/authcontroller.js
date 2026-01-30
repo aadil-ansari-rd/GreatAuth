@@ -97,7 +97,6 @@ export const register = async (req, res) => {
 
 //---------------- Login User ----------------//
 export const login = async (req, res) => {
-    console.log("Login controller called");
     const { email, password } = req.body;
 
     // Check if email and password are provided
@@ -123,10 +122,9 @@ export const login = async (req, res) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', // cross-site cookie handling
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        console.log("Login successful, token set in cookie.");
 
         return res.json({ success: true, message: "Login successful" })
     } catch (err) {
@@ -152,7 +150,7 @@ export const logout = async (req, res) => {
 //---------------- Send Verification OTP ----------------//
 export const sendVerifyOtp = async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req.userId;
         const user = await userModel.findById(userId);
 
         // Check if account is already verified
@@ -211,7 +209,9 @@ export const sendVerifyOtp = async (req, res) => {
 
 //---------------- Verify Email using OTP ----------------//
 export const verifyEmail = async (req, res) => {
-    const { userId, otp } = req.body;
+    const userId = req.userId;
+
+    const { otp } = req.body;
 
     // Check if required details are provided
     if (!userId || !otp) {

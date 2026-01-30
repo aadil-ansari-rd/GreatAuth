@@ -13,7 +13,7 @@ const app = express();                    // Create Express application instance
 const port = process.env.PORT || 4000;    // Use PORT from env or fallback to 4000
 connectDB();
 
-const allowedOrigins = [                     // Define allowed origins for CORS
+const allowedOrigins = [                    // Define allowed origins for CORS
     'http://localhost:5173',                // Client origin
     'http://localhost:7000'                 // Testing origin
 ];
