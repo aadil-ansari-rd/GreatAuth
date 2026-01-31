@@ -23,7 +23,7 @@ const Login = () => {
                     name,
                     email,
                     password
-                },{ withCredentials: true });
+                }, { withCredentials: true });
                 if (data.success) {
                     setIsLoggedin(true);
                     getUserData();

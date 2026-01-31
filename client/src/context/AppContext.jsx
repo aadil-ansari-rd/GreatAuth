@@ -1,4 +1,4 @@
-import { createContext} from "react";
+import { createContext, useEffect} from "react";
 import { useState } from "react";
 export const AppContent = createContext();
 import axios from "axios";
@@ -9,16 +9,34 @@ export const AppContextProvider = (props) => {
     const [isLoggedin, setIsLoggedin] = useState(false) ;
     const [userData, setUserData] = useState(null) ;
 
+    const getAuthState = async () => {
+        try {
+            const {data} = await axios.get(backendUrl + '/api/auth/is-auth', { withCredentials: true });
+            if(data.success){
+                setIsLoggedin(true);
+                getUserData();
+            }else{
+                
+            }
+        } catch (error) {
+            toast.error(error.message);
+        }
+    }
+
     const getUserData = async () => {
         try {
             const {data} = await axios.get(backendUrl + '/api/user/data', { withCredentials: true });
-            console.log(data.success);
-            console.log(data);
             data.success?setUserData(data.userData):toast.error(data.message);
         } catch (error) {
             toast.error(error.message);
         }
     }
+
+
+
+    useEffect(() => {
+        getAuthState();
+    }, []);
 
     const value = {
         backendUrl,

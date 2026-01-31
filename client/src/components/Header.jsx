@@ -16,7 +16,7 @@ const Header = () => {
       />
 
       <h1 className="flex items-center gap-2 text-xl sm:text-3xl font-medium my-2">
-        Hey {userData? userData.name : 'Developer'}! ,
+        Hey {userData? userData.name : 'Developer'}!
         <img src={assets.hand_wave} className="w-8 aspect-square" alt="" />
       </h1>
 
