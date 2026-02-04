@@ -49,6 +49,9 @@ const Navbar = () => {
                                 !userData.isAccountVerified && <li onClick={sendVerificationOtp} className='py-1 px-2 hover:bg-gray-200 cursor-pointer '>
                                     Verfiy Email
                                 </li>}
+                            <li onClick={() => navigate('/reset-password')} className='py-1 px-2 hover:bg-gray-200 cursor-pointer pr-10' >
+                                Reset&nbsp;Password
+                            </li>
                             <li onClick={logout} className='py-1 px-2 hover:bg-gray-200 cursor-pointer pr-10' >
                                 Logout
                             </li>

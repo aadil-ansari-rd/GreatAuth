@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { assets } from '../assets/assets'
 import { useNavigate } from 'react-router-dom';
 import { AppContent } from '../context/AppContext.jsx';
@@ -8,7 +8,12 @@ const Login = () => {
 
     const navigate = useNavigate();
 
-    const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContent);
+    const { isLoggedin, backendUrl, setIsLoggedin, getUserData } = useContext(AppContent);
+    useEffect(() => {  
+        if (isLoggedin) {
+            navigate('/');
+        }
+     }, [isLoggedin, navigate]);
 
     const [state, setState] = useState('Sign Up');
     const [name, setName] = useState('');
