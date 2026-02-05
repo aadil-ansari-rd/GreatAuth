@@ -2,6 +2,7 @@ import bcrypt, { hash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
 import transporter from '../config/nodemailer.js';
+import { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE } from '../config/emailTemplates.js';
 
 //---------------- Register User ----------------//
 export const register = async (req, res) => {
@@ -170,27 +171,7 @@ export const sendVerifyOtp = async (req, res) => {
             to: user.email,
             subject: "Account Verification OTP",
             text: `Your OTP is ${otp}, Verify your account using this OTP. This is valid for 24 hours.`,
-            html: `
-                    <div style="max-width:500px;margin:30px auto;padding:24px;
-                    font-family:Arial;background:#ffffff;border-radius:12px;
-                    box-shadow:0 6px 20px rgba(0,0,0,0.08);">
-
-                    <h2 style="margin:0 0 12px;color:#2563eb;">🔐 Verify Your Account</h2>
-                    <p style="color:#374151;font-size:15px;">
-                        Use the OTP below to verify your GreatAuth account (valid for 24 hours).
-                    </p>
-
-                    <p style="text-align:center;
-                    font-size:30px;font-weight:700;
-                    letter-spacing:6px;color:#111827;">
-                        ${otp}
-                    </p>
-
-                    <p style="font-size:13px;color:#6b7280;">
-                        Do not share this OTP with anyone.
-                    </p>
-                    </div>
-                `
+            html: EMAIL_VERIFY_TEMPLATE.replace("{{email}}", user.email).replace("{{otp}}", otp) 
 
         };
 
@@ -286,27 +267,7 @@ export const sendResetOTP = async (req, res) => {
             to: user.email,
             subject: "Password rest OTP",
             text: `Your OTP for reseting your password is ${otp}. Use this OTP to proceed with resetting your password. This is valid for 15 minutes.`,
-            html: `
-                    <div style="max-width:500px;margin:30px auto;padding:24px;
-                    font-family:Arial;background:#ffffff;border-radius:12px;
-                    box-shadow:0 6px 20px rgba(0,0,0,0.08);">
-
-                    <h2 style="margin:0 0 12px;color:#dc2626;">🔑 Reset Password</h2>
-                    <p style="color:#374151;font-size:15px;">
-                        Use the OTP below to reset your GreatAuth password (valid for 15 minutes).
-                    </p>
-
-                    <p style="text-align:center;
-                    font-size:30px;font-weight:700;
-                    letter-spacing:6px;color:#111827;">
-                        ${otp}
-                    </p>
-
-                    <p style="font-size:13px;color:#6b7280;">
-                        If you didn’t request this, you can safely ignore this email.
-                    </p>
-                    </div>
-                `
+            html: PASSWORD_RESET_TEMPLATE.replace("{{email}}", user.email).replace("{{otp}}", otp)
 
         };
 
